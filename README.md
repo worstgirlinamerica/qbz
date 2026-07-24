@@ -58,30 +58,27 @@
 
 ## 📦 Installation
 
-#### Option 1: Install Globally (Recommended)
-This is the easiest method. It installs the required dependencies and automatically makes the `qbz` command available everywhere in your terminal. *(Note: You may need to use `pip3` depending on your system).*
+#### 1. Install qbz (Recommended)
+This is the reccomended method. It installs the required dependencies and automatically makes the `qbz` command available everywhere in your terminal. *(Note: You may need to use `pip3` depending on your system).*
 
 ```bash
 pip install git+https://github.com/worstgirlinamerica/qbz.git
 ```   
 
-#### Option 2: Clone & Run Manually
-If you prefer to download the source code and run it locally:
+🔑 **Configure Your Qobuz Auth Token**
 
-1. **Clone the repository:**
-
-```bash
-git clone https://github.com/worstgirlinamerica/qbz.git
-cd qbz
-```
-2.  **Install the required libraries:**
-
-```bash
-pip install .
-```
-OR install directly via ```bash pip install -r requirements.txt``` if you prefer.
-
-## Usage 🔑
+Before using qbz, you need to provide your Qobuz browser authentication token. This token is stored locally on your machine and is never transmitted anywhere else.
+1. Open the [Qobuz Web Player](https://play.qobuz.com) in your browser and log in.
+2. Press `F12` to open the Developer Tools.
+3. Go to the **Application** tab (Chrome/Edge) or **Storage** tab (Firefox).
+4. In the left sidebar, expand **Local Storage** and click on `https://play.qobuz.com`.
+5. In the list of keys, find **`localuser`**.
+6. At the bottom of the panel (or by expanding the JSON value), look for the **`token`** string.
+7. Copy the token string.
+8. Open your terminal and Run: **`qbz token`**
+9. When the prompt appears, paste the alphanumeric string and press enter to create your token file!
+> Your token is now saved locally and qbz is ready to use.
+## 🚀 Usage
 ```bash
 qbz [OPTIONS] URLS...
 ```
@@ -90,7 +87,8 @@ OR
 python3 -m qbz
 ```
 if you're running the code manually
-## Examples
+
+### Examples
 
 **Search for an artist:**
 
