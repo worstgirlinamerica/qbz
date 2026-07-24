@@ -128,17 +128,8 @@ qbz "https://open.qobuz.com/album/voi6vtydrimou"
 - `7` - Hi-Res FLAC · 24b / 48kHz
 - `27` - Highest • 24 bit / 48 kHz / Stereo / default
 
-### How to get your Auth Token
-Before usage, you will need to provide your browser's Auth Token during the initial configuration. Here is how to easily find it:
-1. Open the [Qobuz Web Player](https://play.qobuz.com) in your browser and log in.
-2. Press `F12` to open the Developer Tools.
-3. Go to the **Application** tab (Chrome/Edge) or **Storage** tab (Firefox).
-4. In the left sidebar, expand **Local Storage** and click on `https://play.qobuz.com`.
-5. In the list of keys, find **`localuser`**.
-6. At the bottom of the panel (or by expanding the JSON value), look for the **`token`** string.
-7. Open your terminal and enter ```qbz token``` When the prompt appears, paste your alphanumeric string and press enter to save to your config!
 
-#### ❓ Help
+## ❓ Help
 To see all available commands and flags anytime:
 
 ```bash
