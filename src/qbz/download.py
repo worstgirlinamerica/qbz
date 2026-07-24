@@ -5,16 +5,128 @@ import os
 import re
 import requests
 import subprocess
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from qobuz_dl.qopy import Client
-from qobuz_dl.bundle import Bundle
-from qobuz_dl.downloader import tqdm_download, tqdm_download_segments
+
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from qbz.api import QobuzClient
+from qbz.bundle import DEFAULT_APP_ID
+from qbz.paths import configured_token_path, output_path
+
 from mutagen.flac import FLAC, Picture
 from mutagen.id3 import ID3, APIC, TXXX, TIT2, TPE1, TALB, TPE2, TRCK, TPOS, TCON, TDRC, TCOM, TCOP, TSRC, TPUB
 
+
+def _segment_uuid(data):
+    pos = 0
+    while pos + 24 <= len(data):
+        size = int.from_bytes(data[pos:pos + 4], "big")
+        if size <= 0 or pos + size > len(data):
+            break
+        if data[pos + 4:pos + 8] == b"uuid":
+            return data[pos + 8:pos + 24]
+        pos += size
+    return None
+
+
+def _decrypt_segment(data, raw_key, segment_uuid):
+    if segment_uuid is None:
+        return bytes(data)
+    buf = bytearray(data)
+    pos = 0
+    while pos + 8 <= len(buf):
+        size = int.from_bytes(buf[pos:pos + 4], "big")
+        if size <= 0 or pos + size > len(buf):
+            break
+        if buf[pos + 4:pos + 8] == b"uuid" and bytes(buf[pos + 8:pos + 24]) == segment_uuid:
+            pointer = pos + 28
+            data_end = pos + int.from_bytes(buf[pointer:pointer + 4], "big")
+            pointer += 5
+            frame_count = int.from_bytes(buf[pointer:pointer + 3], "big")
+            pointer += 3
+            for _ in range(frame_count):
+                frame_len = int.from_bytes(buf[pointer:pointer + 4], "big")
+                pointer += 6
+                flags = int.from_bytes(buf[pointer:pointer + 2], "big")
+                pointer += 2
+                frame_start, data_end = data_end, data_end + frame_len
+                if flags:
+                    counter_len = buf[pos + 32]
+                    counter = bytes(buf[pointer:pointer + counter_len]) + b"\x00" * (16 - counter_len)
+                    decryptor = Cipher(algorithms.AES(raw_key), modes.CTR(counter)).decryptor()
+                    buf[frame_start:data_end] = decryptor.update(bytes(buf[frame_start:data_end])) + decryptor.finalize()
+                pointer += buf[pos + 32]
+        pos += size
+    return bytes(buf)
+
+
+def download_segmented(track, output_path):
+    """Download and decrypt a Qobuz web-player segmented stream."""
+    if not track.get("url_template") or not track.get("raw_key"):
+        raise RuntimeError("Qobuz returned an incomplete segmented stream descriptor")
+    template = track["url_template"]
+    last_segment = int(track["n_segments"])
+    temp_path = str(output_path) + ".mp4"
+
+    def fetch(number):
+        response = requests.get(template.replace("$SEGMENT$", str(number)), timeout=30)
+        response.raise_for_status()
+        return response.content
+
+    try:
+        with open(temp_path, "wb") as stream:
+            first = fetch(0)
+            second = fetch(1)
+            segment_uuid = _segment_uuid(second)
+            stream.write(_decrypt_segment(first, track["raw_key"], segment_uuid))
+            stream.write(_decrypt_segment(second, track["raw_key"], segment_uuid))
+            if last_segment >= 2:
+                with ThreadPoolExecutor(max_workers=8) as executor:
+                    for data in executor.map(fetch, range(2, last_segment + 1)):
+                        stream.write(_decrypt_segment(data, track["raw_key"], segment_uuid))
+        result = subprocess.run(
+            ["ffmpeg", "-nostdin", "-v", "error", "-y", "-i", temp_path, "-c:a", "copy", "-f", "flac", str(output_path)],
+            capture_output=True, text=True,
+        )
+        if result.returncode:
+            raise RuntimeError(f"ffmpeg could not assemble the segmented FLAC: {result.stderr[-500:]}")
+    finally:
+        try:
+            Path(temp_path).unlink()
+        except FileNotFoundError:
+            pass
+
 # Configuration
-OUTPUT_ROOT = Path(os.getenv("QBZ_OUTPUT_DIR", str(Path.home() / "Qobuz"))).expanduser()
+OUTPUT_ROOT = output_path()
 OUTPUT_ROOT.mkdir(exist_ok=True)
+
+def tqdm_download(url, output_path, title=None):
+    """Download a file with progress reporting."""
+    try:
+        with requests.get(url, stream=True, timeout=60) as r:
+            r.raise_for_status()
+
+            total = int(r.headers.get("content-length", 0))
+            downloaded = 0
+
+            with open(output_path, "wb") as f:
+                for chunk in r.iter_content(chunk_size=1024 * 1024):
+                    if chunk:
+                        f.write(chunk)
+                        downloaded += len(chunk)
+
+                        if total:
+                            percent = downloaded / total * 100
+                            print(
+                                f"\rDownloading {title or ''}: {percent:.1f}%",
+                                end="",
+                                flush=True
+                            )
+
+            print()
+
+    except requests.RequestException as e:
+        raise RuntimeError(f"Download failed: {e}")
 
 BLOCKED_EMBED_KEYS = {
     "id", "label_id", "upc", "performers_raw", "duration", "explicit",
@@ -627,17 +739,22 @@ def write_credit_sheet(data, tracks):
 
 def main(metadata_path):
     # Setup Auth
-    bundle = Bundle()
     token = ""
-    token_file = Path(os.getenv("QBZ_TOKEN_FILE", str(Path.home() / ".config" / "qbz" / "token"))).expanduser()
+    token_file = configured_token_path()
+
     if token_file.is_file():
         token = token_file.read_text(encoding="utf-8").strip()
+
     if not token:
         token = os.getenv("QOBUZ_TOKEN", "").strip()
+
     if not token:
         raise RuntimeError("No Qobuz auth token available")
-    client = Client(email=None, pwd=None, app_id=bundle.get_app_id(), secrets=list(bundle.get_secrets().values()), user_auth_token=token)
-    client.session.headers.update({"X-User-Auth-Token": token})
+
+    client = QobuzClient(
+        app_id=os.getenv("QOBUZ_APP_ID") or DEFAULT_APP_ID,
+        token=token,
+    )
 
     with open(metadata_path, 'r') as f:
         data = json.load(f)
@@ -682,6 +799,10 @@ def main(metadata_path):
             try:
                 track_url = client.get_track_url(track_id, candidate)
                 url = track_url.get("url")
+                if track_url.get("url_template"):
+                    download_segmented(track_url, safe_path)
+                    downloaded = True
+                    break
                 if not url or track_url.get("sample"):
                     raise RuntimeError("Qobuz returned a preview or no URL")
                 tqdm_download(url, str(safe_path), title)

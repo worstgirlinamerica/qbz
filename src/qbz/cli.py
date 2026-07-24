@@ -9,6 +9,10 @@ from pathlib import Path
 
 import requests
 
+from qbz.bundle import Bundle, DEFAULT_APP_ID
+from qbz.config import CONFIG_PATH, get, getboolean, make_default
+from qbz.paths import configured_token_path
+
 from rich.console import Console
 
 from rich.table import Table
@@ -36,11 +40,9 @@ except Exception:
 
 console = Console()
 
-APP_ID = "798273057"
+APP_ID = os.getenv("QOBUZ_APP_ID", "").strip() or get("auth", "app_id", "")
 
-TOKEN_FILE = Path(
-    os.getenv("QBZ_TOKEN_FILE", str(Path.home() / ".config" / "qbz" / "token"))
-).expanduser()
+TOKEN_FILE = configured_token_path()
 
 
 def load_token():
@@ -79,8 +81,9 @@ TEMP_SELECTED_JSON = runtime_dir() / "temp_selected_track.json"
 
 DEBUG_SELECTED_JSON = runtime_dir() / "debug_selected_track.json"
 
-HELPER_SCRIPT = APP_DIR / "authorized_stream_fetch.py"
-CURRENT_QUALITY_ID = "27"
+CURRENT_QUALITY_ID = get("download", "quality", "27")
+if CURRENT_QUALITY_ID not in {"5", "6", "7", "27"}:
+    CURRENT_QUALITY_ID = "27"
 CURRENT_ID_ONLY = False
 WRITE_CREDITS = False
 
@@ -118,6 +121,12 @@ def api(path, params=None):
 
         die("Missing token. Add this to ~/.zshrc:\n\nexport QOBUZ_TOKEN='YOUR_TOKEN'")
 
+    global APP_ID
+    if not APP_ID:
+        try:
+            APP_ID = Bundle().get_app_id()
+        except requests.RequestException:
+            APP_ID = DEFAULT_APP_ID
     headers = {"x-app-id": APP_ID, "x-user-auth-token": TOKEN}
 
     r = requests.get(f"https://www.qobuz.com/api.json/0.2/{path}", headers=headers, params=params or {}, timeout=20)
@@ -145,7 +154,7 @@ def verify():
 
     console.print(Panel(
 
-        f"[bold]Account[/bold] {u.get('email')}\n"
+        f"[bold]Account[/bold] {u.get('email') if getboolean('display', 'show_email', False) else '[hidden]'}\n"
 
         f"[bold]Store[/bold] {u.get('store')}   [bold]Zone[/bold] {u.get('zone')}   [bold]ID[/bold] {u.get('id')}",
 
@@ -167,8 +176,7 @@ def verify():
 
 
 def active_country():
-
-    return os.getenv("QBZ_COUNTRY", "").strip().upper() or SESSION_COUNTRY or "AU"
+    return os.getenv("QBZ_COUNTRY", "").strip().upper() or get("download", "country", "").strip().upper() or SESSION_COUNTRY or "AU"
 
 
 
@@ -499,19 +507,10 @@ def hydrate_album_dates(albums):
 
 
 def run_after_metadata_helper():
-
-    if not HELPER_SCRIPT.exists():
-
-        return
-
     try:
-
         return subprocess.run(
-
-            [sys.executable, str(HELPER_SCRIPT), str(TEMP_SELECTED_JSON)],
-
+            [sys.executable, "-m", "qbz.download", str(TEMP_SELECTED_JSON)],
             check=True,
-
         )
 
     except subprocess.CalledProcessError as e:
@@ -974,7 +973,7 @@ def choose_quality(kind, item):
                 InquirerChoice(name=f"{qid}  {label}", value=qid)
                 for qid, label in choices
             ],
-            default="27",
+            default=CURRENT_QUALITY_ID,
         ).execute()
         choice = str(selected or "27").strip()
     elif questionary is not None:
@@ -984,7 +983,7 @@ def choose_quality(kind, item):
                 questionary.Choice(title=f"{qid}  {label}", value=qid)
                 for qid, label in choices
             ],
-            default="27",
+            default=CURRENT_QUALITY_ID,
             use_indicator=True,
             use_shortcuts=False,
         ).ask()
@@ -993,7 +992,7 @@ def choose_quality(kind, item):
         console.print("[bold cyan]Quality[/bold cyan]")
         for qid, label in choices:
             console.print(f"[cyan]{qid}[/cyan]  {label}")
-        choice = Prompt.ask("Quality", default="27").strip()
+        choice = Prompt.ask("Quality", default=CURRENT_QUALITY_ID).strip()
 
     if choice == "0":
         CURRENT_ID_ONLY = True
@@ -1011,7 +1010,7 @@ def link_for(kind, item):
     if CURRENT_ID_ONLY:
         return str(item_id)
     if kind == "track":
-        template = os.getenv("QBZ_TRACK_LINK_TEMPLATE", "https://play.qobuz.com/track/{track_id}")
+        template = os.getenv("QBZ_TRACK_LINK_TEMPLATE", get("links", "track_template", "https://play.qobuz.com/track/{track_id}"))
         return template.format(track_id=item_id, quality=CURRENT_QUALITY_ID)
     if kind == "album":
         return f"https://play.qobuz.com/album/{item_id}"
@@ -1353,8 +1352,11 @@ def main():
 
     global WRITE_CREDITS
 
+    if not CONFIG_PATH.exists():
+        make_default()
+
     flags = {arg for arg in sys.argv[1:] if arg == "--credits"}
-    WRITE_CREDITS = "--credits" in flags
+    WRITE_CREDITS = "--credits" in flags or getboolean("download", "write_credits", False)
     if flags:
         sys.argv[:] = [arg for arg in sys.argv if arg not in flags]
 
@@ -1364,6 +1366,11 @@ def main():
         first_arg = sys.argv[1].strip()
         if first_arg.lower() in ("token", "switch-token"):
             switch_token()
+            return
+        if first_arg.lower() == "config":
+            if not CONFIG_PATH.exists():
+                make_default()
+            console.print(f"[green]Config file:[/green] {CONFIG_PATH}")
             return
         if handle_direct_url(first_arg):
             return
