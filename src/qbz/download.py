@@ -11,6 +11,7 @@ from pathlib import Path
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from qbz.api import QobuzClient
 from qbz.bundle import DEFAULT_APP_ID
+from qbz.config import getboolean
 from qbz.paths import configured_token_path, output_path
 from qbz.quality import validate_response
 from rich.console import Console
@@ -758,7 +759,8 @@ def write_credit_sheet(data, tracks):
             lines.append(f"  {dynamic_tag_name(role)}: {people}")
         lines.append("")
     sheet.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
-    print(f"Credits saved: {sheet}")
+    if getboolean("display", "show_paths", True):
+        print(f"Credits saved: {sheet}")
 
 def main(metadata_path):
     # Setup Auth
@@ -865,7 +867,8 @@ def main(metadata_path):
 
         # 3. Tag
         tag_file(safe_path, download_track, ext, embed_cover_path)
-        print(f"Saved: {safe_path}")
+        if getboolean("display", "show_paths", True):
+            print(f"Saved: {safe_path}")
 
 if __name__ == "__main__":
     try:

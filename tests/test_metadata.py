@@ -22,7 +22,7 @@ class MetadataTests(unittest.TestCase):
 
     def test_quality_menu_has_credits_only(self):
         values = [value for value, _ in quality_choices_for_item({})]
-        self.assertIn("credits", values)
+        self.assertIn("C", values)
 
     def test_folder_uses_delivered_resolution_fields(self):
         previous = download.OUTPUT_ROOT

@@ -20,6 +20,10 @@ DEFAULTS = {
     },
     "display": {
         "show_email": "false",
+        "show_paths": "true",
+    },
+    "cli": {
+        "default_mode": "song",
     },
     "auth": {
         "token_file": "",

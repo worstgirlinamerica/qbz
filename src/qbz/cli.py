@@ -92,7 +92,7 @@ DOWNLOAD_SUCCEEDED = None
 
 
 
-def banner():
+def banner(context=""):
 
     try:
 
@@ -107,7 +107,30 @@ def banner():
     console.print(Text(title.rstrip("\n"), style="bold cyan"), justify="center")
     console.print(Text("Qobuz catalog search client", style="dim"), justify="center")
     console.print(Text("song  •  album  •  artist  •  isrc", style="bold white"), justify="center")
+    if context:
+        label = "Target" if context.startswith(("http://", "https://")) else "Mode"
+        console.print(Text(f"{label}: {context}", style="bright_cyan"), justify="center")
     console.print()
+
+
+def print_help():
+    console.print(Panel(
+        "[bold cyan]Search modes[/bold cyan]\n"
+        "  qbz song <query>       Search tracks\n"
+        "  qbz album <query>      Search albums\n"
+        "  qbz artist <query>     Browse an artist\n"
+        "  qbz isrc <code>        Find an ISRC\n"
+        "  qbz <qobuz-url>        Download a track or album\n\n"
+        "[bold cyan]Flags[/bold cyan]\n"
+        "  --credits              Also write a credits sheet\n"
+        "  --credits-only         Write credits without downloading audio\n"
+        "  --help                 Show this help\n\n"
+        "[bold cyan]Configuration[/bold cyan]\n"
+        "  qbz config              Show the config file location\n"
+        "  Set cli.default_mode, download.quality, or display.show_paths\n",
+        title="qbz help",
+        border_style="bright_cyan",
+    ))
 
 
 
@@ -1036,12 +1059,12 @@ def item_max_spec(item):
 
 def quality_choices_for_item(item):
     return [
-        ("5", "MP3  •  lossy / low"),
-        ("6", f"Lossless  •  {describe('6', item)}"),
-        ("7", f"Hi-Res  •  {describe('7', item)}"),
-        ("27", f"Highest available  •  {describe('27', item)}"),
-        ("credits", "Credits only  •  no audio download"),
-        ("0", "Copy selected item ID only"),
+        ("5", "MP3 (lossy)"),
+        ("6", f"Lossless FLAC ({describe('6', item)})"),
+        ("7", f"Hi-Res FLAC ({describe('7', item)})"),
+        ("27", f"Highest available ({describe('27', item)})"),
+        ("C", "Credits only (no audio download)"),
+        ("0", "Copy item ID only"),
     ]
 
 
@@ -1087,7 +1110,7 @@ def choose_quality(kind, item):
         CURRENT_ID_ONLY = True
         CURRENT_QUALITY_ID = "27"
         return
-    if choice == "credits":
+    if choice.casefold() in {"c", "credits"}:
         CURRENT_CREDITS_ONLY = True
         CURRENT_QUALITY_ID = "27"
         return
@@ -1463,6 +1486,10 @@ def main():
 
     global WRITE_CREDITS, CURRENT_CREDITS_ONLY
 
+    if any(arg in {"--help", "-h"} for arg in sys.argv[1:]):
+        print_help()
+        return
+
     if not CONFIG_PATH.exists():
         make_default()
 
@@ -1472,7 +1499,8 @@ def main():
     if flags:
         sys.argv[:] = [arg for arg in sys.argv if arg not in flags]
 
-    banner()
+    context = next((arg for arg in sys.argv[1:] if not arg.startswith("--")), "")
+    banner(context or get("cli", "default_mode", "song"))
 
     if len(sys.argv) > 1:
         first_arg = sys.argv[1].strip()
@@ -1488,7 +1516,10 @@ def main():
             return
         mode = first_arg.lower()
     else:
-        mode_or_link = Prompt.ask("Enter mode or link", default="song").strip()
+        default_mode = get("cli", "default_mode", "song").strip().lower()
+        if default_mode not in ("song", "album", "artist", "isrc", "whoami"):
+            default_mode = "song"
+        mode_or_link = Prompt.ask("Enter mode or link", default=default_mode).strip()
         if handle_direct_url(mode_or_link):
             return
         mode = mode_or_link.lower()
