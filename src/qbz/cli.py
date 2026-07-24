@@ -1482,7 +1482,7 @@ def handle_direct_url(value):
         return True
     return False
 
-def main():
+def _main():
 
     global WRITE_CREDITS, CURRENT_CREDITS_ONLY
 
@@ -1500,7 +1500,7 @@ def main():
         sys.argv[:] = [arg for arg in sys.argv if arg not in flags]
 
     context = next((arg for arg in sys.argv[1:] if not arg.startswith("--")), "")
-    banner(context or get("cli", "default_mode", "song"))
+    banner(context)
 
     if len(sys.argv) > 1:
         first_arg = sys.argv[1].strip()
@@ -1516,10 +1516,13 @@ def main():
             return
         mode = first_arg.lower()
     else:
-        default_mode = get("cli", "default_mode", "song").strip().lower()
+        default_mode = get("cli", "default_mode", "").strip().lower()
         if default_mode not in ("song", "album", "artist", "isrc", "whoami"):
-            default_mode = "song"
-        mode_or_link = Prompt.ask("Enter mode or link", default=default_mode).strip()
+            default_mode = ""
+        if default_mode:
+            mode_or_link = Prompt.ask("Enter mode or link", default=default_mode).strip()
+        else:
+            mode_or_link = Prompt.ask("Enter mode or link (song / album / artist / isrc)").strip()
         if handle_direct_url(mode_or_link):
             return
         mode = mode_or_link.lower()
@@ -1690,6 +1693,13 @@ def main():
     console.print("\n[dim]Tip: one-word searches work, but “Title - Artist” is more precise. Newest dates sort first.[/dim]")
 
 
-if __name__ == "__main__":
+def main():
+    try:
+        return _main()
+    except KeyboardInterrupt:
+        console.print("\n[dim]Cancelled.[/dim]")
+        return 130
 
+
+if __name__ == "__main__":
     main()

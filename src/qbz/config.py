@@ -23,7 +23,7 @@ DEFAULTS = {
         "show_paths": "true",
     },
     "cli": {
-        "default_mode": "song",
+        "default_mode": "",
     },
     "auth": {
         "token_file": "",

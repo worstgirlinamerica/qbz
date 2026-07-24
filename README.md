@@ -137,7 +137,7 @@ values where applicable.
 | `[download] write_credits` | Write a credits text file for downloads | `false` |
 | `[display] show_email` | Show the account email in `whoami`/session output | `false` |
 | `[display] show_paths` | Print completed audio and credits file paths | `true` |
-| `[cli] default_mode` | Mode used when running `qbz` without arguments | `song` |
+| `[cli] default_mode` | Optional mode used when pressing Enter at the bare `qbz` prompt | empty; asks you |
 | `[auth] token_file` | Override the local token-file path | platform config directory |
 | `[auth] app_id` | Override the Qobuz app ID if needed | automatic |
 | `[links] track_template` | Link format using `{track_id}` and `{quality}` | `https://play.qobuz.com/track/{track_id}` |
