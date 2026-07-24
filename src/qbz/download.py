@@ -799,7 +799,8 @@ def main(metadata_path):
                 track_url = client.get_track_url(track_id, candidate)
                 url = track_url.get("url")
                 returned_format = str(track_url.get("format_id") or candidate)
-                if returned_format != candidate:
+                highest_available_response = candidate == "27" and returned_format in {"6", "7", "27"}
+                if returned_format != candidate and not highest_available_response:
                     raise RuntimeError(
                         f"Qobuz returned format {returned_format} for requested format {candidate}"
                     )

@@ -209,10 +209,10 @@ qbz "https://open.qobuz.com/album/voi6vtydrimou"
 - `27` - Highest available release resolution, including rates above 96kHz
 
 The format IDs are targets, not guesses about the file. qbz reads Qobuz’s
-release metadata and verifies the returned bit depth and sample rate. If a
-selected `27`, `7`, or `6` request comes back lower than its target, qbz stops
-with a resolution-mismatch error instead of silently accepting or downgrading
-the file.
+release metadata and verifies the returned bit depth and sample rate. `27`
+asks Qobuz for the highest available quality and may correctly return format
+`7` or `6` for releases that do not have anything higher. If the actual file
+is below the release maximum, qbz stops with a resolution-mismatch error.
 
 
 ## ❓ Help

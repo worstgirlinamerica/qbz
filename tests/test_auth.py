@@ -43,6 +43,10 @@ class AuthTests(unittest.TestCase):
         metadata = {"maximum_bit_depth": 24, "maximum_sampling_rate": 192}
         validate_response("27", {"bit_depth": 24, "sampling_rate": 192}, metadata)
 
+    def test_27_allows_release_that_maxes_out_at_cd_quality(self):
+        metadata = {"maximum_bit_depth": 16, "maximum_sampling_rate": 44.1}
+        validate_response("27", {"format_id": 6, "bit_depth": 16, "sampling_rate": 44.1}, metadata)
+
     def test_bundle_extracts_app_id_and_secret(self):
         secret = "test-secret"
         encoded = base64.b64encode(secret.encode()).decode() + ("x" * 44)
