@@ -15,6 +15,7 @@ from qbz.paths import configured_token_path
 from qbz.quality import describe
 
 from rich.console import Console
+from rich.text import Text
 
 from rich.table import Table
 
@@ -57,8 +58,7 @@ def load_token():
 
 TOKEN = load_token()
 if TOKEN:
-    # Keep the metadata client and the download helper on the same token.
-    # The helper is launched as a subprocess and reads QOBUZ_TOKEN.
+    # Keep the metadata client and native downloader on the same token.
     os.environ["QOBUZ_TOKEN"] = TOKEN
 SESSION_COUNTRY = ""
 
@@ -87,6 +87,7 @@ if CURRENT_QUALITY_ID not in {"5", "6", "7", "27"}:
     CURRENT_QUALITY_ID = "27"
 CURRENT_ID_ONLY = False
 WRITE_CREDITS = False
+DOWNLOAD_SUCCEEDED = None
 
 
 
@@ -102,9 +103,10 @@ def banner():
 
         title = "QBZ"
 
-    console.print(f"[bold cyan]{title}[/bold cyan]")
-
-    console.print("[dim]Qobuz catalog search client • song / album / artist / isrc[/dim]\n")
+    console.print(Text(title.rstrip("\n"), style="bold cyan"), justify="center")
+    console.print(Text("Qobuz catalog search client", style="dim"), justify="center")
+    console.print(Text("song  •  album  •  artist  •  isrc", style="bold white"), justify="center")
+    console.print()
 
 
 
@@ -508,21 +510,22 @@ def hydrate_album_dates(albums):
 
 
 def run_after_metadata_helper():
+    """Download the selected item with this checkout's native downloader.
+
+    Keep this in-process.  Launching ``python -m qbz.download`` can resolve a
+    different globally installed qbz package than the CLI itself, which made
+    old installs silently fall back to the removed qobuz-dl helper.
+    """
     try:
-        return subprocess.run(
-            [sys.executable, "-m", "qbz.download", str(TEMP_SELECTED_JSON)],
-            check=True,
-        )
+        from qbz.download import main as download_main
 
-    except subprocess.CalledProcessError as e:
-
-        console.print(f"[yellow]Helper script exited with code {e.returncode}.[/yellow]")
-
+        download_main(str(TEMP_SELECTED_JSON))
+        return True
+    except KeyboardInterrupt:
+        raise
     except Exception as e:
-
-        console.print(f"[yellow]Helper script could not run: {e}[/yellow]")
-
-    return None
+        console.print(f"[red]Download failed:[/red] {e}")
+        return False
 
 
 
@@ -626,6 +629,7 @@ def build_selected_metadata(kind, selected):
 
 
 def export_selected_metadata(kind, selected, debug=False):
+    global DOWNLOAD_SUCCEEDED
     with Progress(
         SpinnerColumn(style="cyan"),
         TextColumn("[bold cyan]{task.description}"),
@@ -647,7 +651,7 @@ def export_selected_metadata(kind, selected, debug=False):
         f"{len(credits_by_role)} distinct roles"
     )
 
-    run_after_metadata_helper()
+    DOWNLOAD_SUCCEEDED = run_after_metadata_helper()
 
     if debug:
         console.print(f"[dim]Debug object written to {DEBUG_SELECTED_JSON}[/dim]")
@@ -666,6 +670,7 @@ def album_track_sort_key(track):
 
 
 def export_album_metadata(selected, debug=False):
+    global DOWNLOAD_SUCCEEDED
     with Progress(
         SpinnerColumn(style="cyan"),
         TextColumn("[bold cyan]{task.description}"),
@@ -724,7 +729,7 @@ def export_album_metadata(selected, debug=False):
         f"• quality {CURRENT_QUALITY_ID}"
     )
 
-    run_after_metadata_helper()
+    DOWNLOAD_SUCCEEDED = run_after_metadata_helper()
 
     if debug:
         console.print(f"[dim]Debug object written to {DEBUG_SELECTED_JSON}[/dim]")
@@ -951,10 +956,10 @@ def item_max_spec(item):
 
 def quality_choices_for_item(item):
     return [
-        ("5", "MP3 • lossy / low"),
-        ("6", f"Lossless • {describe('6', item)}"),
-        ("7", f"Hi-Res • {describe('7', item)}"),
-        ("27", f"Highest available • {describe('27', item)}"),
+        ("5", "MP3  •  lossy / low"),
+        ("6", f"Lossless  •  {describe('6', item)}"),
+        ("7", f"Hi-Res  •  {describe('7', item)}"),
+        ("27", f"Highest available  •  {describe('27', item)}"),
         ("0", "Copy selected item ID only"),
     ]
 
@@ -1046,10 +1051,12 @@ def selected_card(kind, item):
     if CURRENT_ID_ONLY:
         status = "[green]✓ Copied selected item ID[/green]" if copied else "[yellow]Printed, but clipboard copy failed.[/yellow]"
     elif kind == "album":
-        status = "[green]✓ Album metadata exported[/green]\n[green]✓ Album download started[/green]"
+        download_status = "[green]✓ Album download complete[/green]" if DOWNLOAD_SUCCEEDED else "[red]✗ Album download failed[/red]"
+        status = f"[green]✓ Album metadata exported[/green]\n{download_status}"
         status += "\n" + ("[green]✓ Copied album link to clipboard[/green]" if copied else "[yellow]Printed, but clipboard copy failed.[/yellow]")
     else:
-        status = "[green]✓ Metadata exported[/green]\n"
+        download_status = "[green]✓ Download complete[/green]" if DOWNLOAD_SUCCEEDED else "[red]✗ Download failed[/red]"
+        status = "[green]✓ Metadata exported[/green]\n" + download_status + "\n"
         status += "[green]✓ Copied to clipboard[/green]" if copied else "[yellow]Printed, but clipboard copy failed.[/yellow]"
 
     card = (

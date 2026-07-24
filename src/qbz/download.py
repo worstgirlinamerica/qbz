@@ -13,9 +13,14 @@ from qbz.api import QobuzClient
 from qbz.bundle import DEFAULT_APP_ID
 from qbz.paths import configured_token_path, output_path
 from qbz.quality import validate_response
+from rich.console import Console
+from rich.progress import BarColumn, Progress, TaskProgressColumn, TextColumn
 
 from mutagen.flac import FLAC, Picture
 from mutagen.id3 import ID3, APIC, TXXX, TIT2, TPE1, TALB, TPE2, TRCK, TPOS, TCON, TDRC, TCOM, TCOP, TSRC, TPUB
+
+
+console = Console()
 
 
 def _segment_uuid(data):
@@ -75,16 +80,26 @@ def download_segmented(track, output_path):
         return response.content
 
     try:
-        with open(temp_path, "wb") as stream:
-            first = fetch(0)
-            second = fetch(1)
-            segment_uuid = _segment_uuid(second)
-            stream.write(_decrypt_segment(first, track["raw_key"], segment_uuid))
-            stream.write(_decrypt_segment(second, track["raw_key"], segment_uuid))
-            if last_segment >= 2:
-                with ThreadPoolExecutor(max_workers=8) as executor:
-                    for data in executor.map(fetch, range(2, last_segment + 1)):
-                        stream.write(_decrypt_segment(data, track["raw_key"], segment_uuid))
+        with Progress(
+            TextColumn("[cyan]{task.description}"),
+            BarColumn(complete_style="cyan", finished_style="green"),
+            TaskProgressColumn(),
+            expand=True,
+            transient=False,
+        ) as progress:
+            task = progress.add_task("Downloading", total=last_segment + 1)
+            with open(temp_path, "wb") as stream:
+                first = fetch(0)
+                second = fetch(1)
+                progress.advance(task, 2)
+                segment_uuid = _segment_uuid(second)
+                stream.write(_decrypt_segment(first, track["raw_key"], segment_uuid))
+                stream.write(_decrypt_segment(second, track["raw_key"], segment_uuid))
+                if last_segment >= 2:
+                    with ThreadPoolExecutor(max_workers=8) as executor:
+                        for data in executor.map(fetch, range(2, last_segment + 1)):
+                            stream.write(_decrypt_segment(data, track["raw_key"], segment_uuid))
+                            progress.advance(task)
         result = subprocess.run(
             ["ffmpeg", "-nostdin", "-v", "error", "-y", "-i", temp_path, "-c:a", "copy", "-f", "flac", str(output_path)],
             capture_output=True, text=True,
@@ -102,29 +117,25 @@ OUTPUT_ROOT = output_path()
 OUTPUT_ROOT.mkdir(exist_ok=True)
 
 def tqdm_download(url, output_path, title=None):
-    """Download a file with progress reporting."""
+    """Download a file with a compact Rich progress bar."""
     try:
         with requests.get(url, stream=True, timeout=60) as r:
             r.raise_for_status()
 
             total = int(r.headers.get("content-length", 0))
-            downloaded = 0
-
-            with open(output_path, "wb") as f:
-                for chunk in r.iter_content(chunk_size=1024 * 1024):
-                    if chunk:
-                        f.write(chunk)
-                        downloaded += len(chunk)
-
-                        if total:
-                            percent = downloaded / total * 100
-                            print(
-                                f"\rDownloading {title or ''}: {percent:.1f}%",
-                                end="",
-                                flush=True
-                            )
-
-            print()
+            with Progress(
+                TextColumn("[cyan]{task.description}"),
+                BarColumn(complete_style="cyan", finished_style="green"),
+                TaskProgressColumn(),
+                expand=True,
+                transient=False,
+            ) as progress:
+                task = progress.add_task("Downloading" if not title else f"Downloading {title}", total=total or None)
+                with open(output_path, "wb") as f:
+                    for chunk in r.iter_content(chunk_size=1024 * 1024):
+                        if chunk:
+                            f.write(chunk)
+                            progress.advance(task, len(chunk))
 
     except requests.RequestException as e:
         raise RuntimeError(f"Download failed: {e}")
@@ -273,9 +284,13 @@ def output_folder_for(data, track=None):
     artist = artist_from_meta(base) if album_batch else artist_from_meta(item)
     album_title = album_title_from_meta(base) if album_batch else album_title_from_meta(item)
     year = year_from_meta(base, item)
-    bit_depth = bit_depth_from_meta(base, item)
-    sample_rate = sample_rate_from_meta(base, item)
-    quality_label = " ".join(part for part in (bit_depth, sample_rate) if part)
+    quality = str(item.get("quality_id") or base.get("quality_id") or "")
+    if quality == "5":
+        quality_label = "MP3"
+    else:
+        bit_depth = bit_depth_from_meta(base, item)
+        sample_rate = sample_rate_from_meta(base, item)
+        quality_label = " ".join(part for part in (bit_depth, sample_rate) if part)
     explicit = explicit_from_meta(base, item)
 
     folder_name = f"{artist} - {album_title}"
@@ -515,7 +530,7 @@ def download_cover_to(path, meta, sizes):
             if not data.startswith(b"\xff\xd8"):
                 continue
             path.write_bytes(data)
-            print(f"Artwork downloaded: {url}")
+            console.print(f"[cyan]✓ Artwork downloaded[/cyan] [dim]{url}[/dim]")
             return path, url
         except requests.RequestException:
             continue
@@ -542,7 +557,7 @@ def prepare_covers(folder, *metas):
         for meta in usable_meta:
             saved, url = download_cover_to(cover_path, meta, ("org", "max", "2000", "1500", "1200", "1000", "800", "600"))
             if saved:
-                print(f"Artwork embedded source: {url}")
+                console.print(f"[green]✓ Artwork ready for embedding[/green] [dim]{url}[/dim]")
                 break
 
     return saved, saved
@@ -566,6 +581,7 @@ def embed_flac_cover(audio, cover_path):
     image.desc = "Cover"
     image.data = data
     audio.add_picture(image)
+    console.print("[green]✓ Artwork embedded in FLAC[/green]")
 
 def write_flac_tag(audio, key, value):
     if value in (None, "", [], {}):
@@ -688,6 +704,7 @@ def tag_file(file_path, meta, ext, cover_path):
                 if data.startswith(b"\xff\xd8"):
                     audio.delall("APIC")
                     audio.add(APIC(encoding=3, mime="image/jpeg", type=3, desc="Cover", data=data))
+                    console.print("[green]✓ Artwork embedded in MP3[/green]")
 
             audio.save()
 
@@ -771,19 +788,6 @@ def main(metadata_path):
         track_id = track.get("id")
         ext = "mp3" if str(quality_id) == "5" else "flac"
 
-        folder = output_folder_for(data, track)
-        _, embed_cover_path = prepare_covers(folder, data, track, track.get("album") if isinstance(track.get("album"), dict) else {})
-
-        # Consistent Filename format
-        num = track.get('track_number', 0)
-        title = safe_path_part(track.get('title', 'Unknown'))
-        filename = f"{int(num):02d}. {title}.{ext}" if str(num).isdigit() and int(num) else f"{title}.{ext}"
-        safe_path = folder / filename
-
-        if complete_audio(safe_path, track.get("duration")):
-            print(f"Already complete: {safe_path}")
-            continue
-
         # Use only the quality the user selected. Never silently downgrade a
         # 27/7/6 request to another format; report the failure instead.
         requested = str(quality_id)
@@ -805,6 +809,35 @@ def main(metadata_path):
                         f"Qobuz returned format {returned_format} for requested format {candidate}"
                     )
                 validate_response(candidate, track_url, data, track)
+
+                # Qobuz's catalog maximum is only a prediction. The stream
+                # response is authoritative, so use it for the folder name
+                # and embedded metadata labels.
+                download_track = dict(track)
+                actual_bits = first_nonempty(track_url.get("bit_depth"), track_url.get("bits_depth"))
+                actual_rate = first_nonempty(track_url.get("sampling_rate"), track_url.get("sample_rate"))
+                if actual_bits not in (None, ""):
+                    download_track["bit_depth"] = actual_bits
+                if actual_rate not in (None, ""):
+                    download_track["sampling_rate"] = actual_rate
+
+                folder = output_folder_for(data, download_track)
+                _, embed_cover_path = prepare_covers(
+                    folder, data, download_track,
+                    download_track.get("album") if isinstance(download_track.get("album"), dict) else {},
+                )
+
+                # Consistent Filename format
+                num = download_track.get('track_number', 0)
+                title = safe_path_part(download_track.get('title', 'Unknown'))
+                filename = f"{int(num):02d}. {title}.{ext}" if str(num).isdigit() and int(num) else f"{title}.{ext}"
+                safe_path = folder / filename
+
+                if complete_audio(safe_path, download_track.get("duration")):
+                    print(f"Already complete: {safe_path}")
+                    downloaded = True
+                    break
+
                 if track_url.get("url_template"):
                     download_segmented(track_url, safe_path)
                     downloaded = True
@@ -826,7 +859,7 @@ def main(metadata_path):
             raise RuntimeError(f"No complete authorized stream returned: {last_error}")
 
         # 3. Tag
-        tag_file(safe_path, track, ext, embed_cover_path)
+        tag_file(safe_path, download_track, ext, embed_cover_path)
         print(f"Saved: {safe_path}")
 
 if __name__ == "__main__":
