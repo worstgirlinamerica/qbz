@@ -1,13 +1,13 @@
 # qbz
 <p align="left">
- <a href="https://github.com/worstgirlinamerica/qbz"><img src="https://img.shields.io/badge/Qobuz-Downloader-21a0c0?style=plastic&labelColor=474747"></a>
- <a href="https://github.com/worstgirlinamerica/qbz/actions/workflows/test.yml"><img src="https://github.com/worstgirlinamerica/qbz/actions/workflows/test.yml/badge.svg" alt="Tests"></a>
+ <a href="https://github.com/worstgirlinamerica/qbz-cli"><img src="https://img.shields.io/badge/Qobuz-Downloader-21a0c0?style=plastic&labelColor=474747"></a>
+ <a href="https://github.com/worstgirlinamerica/qbz-cli/actions/workflows/test.yml"><img src="https://github.com/worstgirlinamerica/qbz/actions/workflows/test.yml/badge.svg" alt="Tests"></a>
  <img src="https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white">
  <img src="https://img.shields.io/badge/CLI-Terminal-black?logo=gnubash&logoColor=white">
 
 </p>
 
-`qbz` is a feature-rich, fast Python-based CLI tool designed for music hoarders. It lets you interactively search the Qobuz catalog, explore artist discographies, and download tracks with pristine metadata, embedded artwork, and official credits.
+`qbz` (qbz-cli) is a feature-rich, fast Python-based CLI tool designed for music hoarders. It lets you interactively search the Qobuz catalog, explore artist discographies, and download tracks with pristine metadata, embedded artwork, and official credits.
 
 <table>
 <tr>
@@ -67,7 +67,7 @@ This installs `qbz` and its Python dependencies, and makes the `qbz` command ava
 If you already have a suitable [Python environment](#required), the short form is:
 
 ```bash
-python -m pip install git+https://github.com/worstgirlinamerica/qbz.git
+python -m pip install git+https://github.com/worstgirlinamerica/qbz-cli.git
 ```
 
 **macOS / Linux**
@@ -76,7 +76,7 @@ python -m pip install git+https://github.com/worstgirlinamerica/qbz.git
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
-python -m pip install git+https://github.com/worstgirlinamerica/qbz.git
+python -m pip install git+https://github.com/worstgirlinamerica/qbz-cli.git
 ```   
 
 **Windows PowerShell**
@@ -85,7 +85,7 @@ python -m pip install git+https://github.com/worstgirlinamerica/qbz.git
 py -3 -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
-python -m pip install git+https://github.com/worstgirlinamerica/qbz.git
+python -m pip install git+https://github.com/worstgirlinamerica/qbz-cli.git
 ```
 
 #### 2. 🔑 **Configure Your Qobuz Auth Token**
@@ -239,8 +239,8 @@ qbz --help
 
 ## 🏆 Credits and disclaimer
 
-`qbz` is the official repository at:
-https://github.com/worstgirlinamerica/qbz
+[qbz-cli](https://github.com/worstgirlinamerica/qbz-cli) is the official repository at:
+https://github.com/worstgirlinamerica/qbz-cli
 
 `qbz` is an independent Qobuz CLI tool and is not affiliated with other projects using the QBZ name, or Qobuz itself. Only the runtime
 authentication and segmented-stream implementation were informed by public web-player behavior and community research around qobuz-dl/qopy, including work associated with Sorrow446, DashLt, and catap. 
