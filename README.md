@@ -164,6 +164,33 @@ track_template = https://play.qobuz.com/track/{track_id}?quality={quality}
 
 The config path is platform-native by default. Set `QBZ_CONFIG_FILE` when you
 want a specific file, for example in a portable or CI setup.
+
+### Configuration and flags quick reference
+
+On macOS the default config file is
+`~/Library/Application Support/qbz/config.ini`. Linux uses
+`~/.config/qbz/config.ini`; Windows uses `%LOCALAPPDATA%\qbz\config.ini`.
+Run `qbz config` to print the exact path on the current computer.
+
+| Command or flag | What it does |
+| --- | --- |
+| `qbz` | Opens the interactive prompt using `cli.default_mode` |
+| `qbz song <query>` | Search tracks |
+| `qbz album <query>` | Search albums |
+| `qbz artist <query>` | Browse an artist |
+| `qbz isrc <code>` | Search by ISRC |
+| `qbz <qobuz-url>` | Download a track or album from a Qobuz URL |
+| `qbz whoami` | Show the authenticated Qobuz session |
+| `qbz token` | Save or replace the local Qobuz token |
+| `qbz config` | Print the config file path |
+| `--credits` | Download normally and also write a credits sheet |
+| `--credits-only` | Write credits without downloading audio |
+| `--help`, `-h` | Show built-in command help |
+
+Environment overrides are also supported: `QBZ_CONFIG_FILE`, `QBZ_TOKEN_FILE`,
+`QBZ_OUTPUT_DIR`, `QBZ_COUNTRY`, `QBZ_TRACK_LINK_TEMPLATE`, and
+`QBZ_DEBUG_SELECTED`.
+
 ## 🚀 Usage
 ```bash
 qbz [OPTIONS] URLS...
