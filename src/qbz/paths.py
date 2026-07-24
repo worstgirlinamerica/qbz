@@ -15,7 +15,12 @@ def configured_token_path():
     from qbz.config import get
 
     configured = os.getenv("QBZ_TOKEN_FILE", "").strip() or get("auth", "token_file", "")
-    return Path(configured).expanduser() if configured else user_config_path("qbz") / "token"
+    if configured:
+        return Path(configured).expanduser()
+    native = user_config_path("qbz") / "token"
+    legacy = Path.home() / ".config" / "qbz" / "token"
+    # Preserve tokens created by qbz 0.1.x and the older standalone launcher.
+    return legacy if legacy.is_file() and not native.is_file() else native
 
 
 def output_path():
