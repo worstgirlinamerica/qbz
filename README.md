@@ -63,12 +63,8 @@ This is the easiest method. It installs the required dependencies and automatica
 
 ```bash
 pip install git+https://github.com/worstgirlinamerica/qbz.git
-```
-2. **Create / set up the token file:**
-   - Get your Browser Auth token string by following the Usage section
-   - Run 'qbz token' and wait for the prompt to input the string.
-   - Press enter and use freely!
-     
+```   
+
 #### Option 2: Clone & Run Manually
 If you prefer to download the source code and run it locally:
 
@@ -83,18 +79,18 @@ cd qbz
 ```bash
 pip install .
 ```
-(Or install directly via ```bash pip install -r requirements.txt``` if you prefer).
-3. **You can now run the tool directly:**
+OR install directly via ```bash pip install -r requirements.txt``` if you prefer.
 
-```bash
-python3 -m qbz
-```
-
-### Usage 🔑
+## Usage 🔑
 ```bash
 qbz [OPTIONS] URLS...
 ```
-### Examples
+OR 
+```bash
+python3 -m qbz
+```
+if you're running the code manually
+## Examples
 
 **Search for an artist:**
 
