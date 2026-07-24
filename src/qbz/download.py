@@ -783,12 +783,10 @@ def main(metadata_path):
             print(f"Already complete: {safe_path}")
             continue
 
-        # Use Qobuz's direct authorized URL with the token loaded above.
-        # Quality 27/7 may be downgraded by Qobuz to CD-quality format 6;
-        # that is still a complete FLAC. Never fall back to MP3 for a
-        # lossless request, and never keep a preview/non-FLAC response.
+        # Use only the quality the user selected. Never silently downgrade a
+        # 27/7/6 request to another format; report the failure instead.
         requested = str(quality_id)
-        qualities = [requested] if requested == "5" else [requested, "7", "6"]
+        qualities = [requested]
         seen = set()
         downloaded = False
         last_error = None
@@ -799,6 +797,11 @@ def main(metadata_path):
             try:
                 track_url = client.get_track_url(track_id, candidate)
                 url = track_url.get("url")
+                returned_format = str(track_url.get("format_id") or candidate)
+                if returned_format != candidate:
+                    raise RuntimeError(
+                        f"Qobuz returned format {returned_format} for requested format {candidate}"
+                    )
                 if track_url.get("url_template"):
                     download_segmented(track_url, safe_path)
                     downloaded = True
