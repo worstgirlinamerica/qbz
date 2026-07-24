@@ -17,7 +17,7 @@ from rich.console import Console
 from rich.progress import BarColumn, Progress, TaskProgressColumn, TextColumn
 
 from mutagen.flac import FLAC, Picture
-from mutagen.id3 import ID3, APIC, TXXX, TIT2, TPE1, TALB, TPE2, TRCK, TPOS, TCON, TDRC, TCOM, TCOP, TSRC, TPUB
+from mutagen.id3 import ID3, APIC, TXXX, USLT, TIT2, TPE1, TALB, TPE2, TRCK, TPOS, TCON, TDRC, TCOM, TCOP, TSRC, TPUB
 
 
 console = Console()
@@ -82,8 +82,8 @@ def download_segmented(track, output_path):
     try:
         with Progress(
             TextColumn("[cyan]{task.description}"),
-            BarColumn(complete_style="cyan", finished_style="green"),
-            TaskProgressColumn(),
+            BarColumn(bar_width=None, complete_style="bright_cyan", finished_style="bright_cyan", pulse_style="bright_cyan"),
+            TaskProgressColumn(style="bright_white"),
             expand=True,
             transient=False,
         ) as progress:
@@ -125,8 +125,8 @@ def tqdm_download(url, output_path, title=None):
             total = int(r.headers.get("content-length", 0))
             with Progress(
                 TextColumn("[cyan]{task.description}"),
-                BarColumn(complete_style="cyan", finished_style="green"),
-                TaskProgressColumn(),
+                BarColumn(bar_width=None, complete_style="bright_cyan", finished_style="bright_cyan", pulse_style="bright_cyan"),
+                TaskProgressColumn(style="bright_white"),
                 expand=True,
                 transient=False,
             ) as progress:
@@ -402,6 +402,8 @@ def dynamic_tag_name(role):
         "producer": "Producer",
         "programmer": "Programmer",
         "programming": "Programming",
+        "performingartist": "Performing Artist",
+        "performingartists": "Performing Artists",
         "recordedby": "Recording Engineer",
         "recordingengineer": "Recording Engineer",
         "songwriter": "Songwriter",
@@ -530,7 +532,7 @@ def download_cover_to(path, meta, sizes):
             if not data.startswith(b"\xff\xd8"):
                 continue
             path.write_bytes(data)
-            console.print(f"[cyan]✓ Artwork downloaded[/cyan] [dim]{url}[/dim]")
+            console.print(f"[bright_cyan]✓ Artwork downloaded[/bright_cyan] [dim]{url}[/dim]")
             return path, url
         except requests.RequestException:
             continue
@@ -557,7 +559,6 @@ def prepare_covers(folder, *metas):
         for meta in usable_meta:
             saved, url = download_cover_to(cover_path, meta, ("org", "max", "2000", "1500", "1200", "1000", "800", "600"))
             if saved:
-                console.print(f"[green]✓ Artwork ready for embedding[/green] [dim]{url}[/dim]")
                 break
 
     return saved, saved
@@ -581,7 +582,7 @@ def embed_flac_cover(audio, cover_path):
     image.desc = "Cover"
     image.data = data
     audio.add_picture(image)
-    console.print("[green]✓ Artwork embedded in FLAC[/green]")
+    console.print("[bright_cyan]✓ Artwork embedded in FLAC[/bright_cyan]")
 
 def write_flac_tag(audio, key, value):
     if value in (None, "", [], {}):
@@ -621,6 +622,7 @@ def tag_file(file_path, meta, ext, cover_path):
                 "isrc": meta.get("isrc"),
                 "barcode": meta.get("barcode") or meta.get("upc"),
                 "copyright": meta.get("copyright"),
+                "lyrics": meta.get("lyrics"),
             }
 
             composers = meta.get("composers") or meta.get("composer")
@@ -682,6 +684,10 @@ def tag_file(file_path, meta, ext, cover_path):
             if copyright_text: set_frame("TCOP", TCOP(encoding=3, text=copyright_text))
             if isrc: set_frame("TSRC", TSRC(encoding=3, text=isrc))
             if label: set_frame("TPUB", TPUB(encoding=3, text=label))
+            lyrics = metadata_value(meta.get("lyrics"))
+            if lyrics:
+                audio.delall("USLT")
+                audio.add(USLT(encoding=3, lang="eng", desc="", text=lyrics))
 
             # Remove old custom frames from bad passthrough runs.
             for old in list(audio.getall("TXXX")):
@@ -704,7 +710,7 @@ def tag_file(file_path, meta, ext, cover_path):
                 if data.startswith(b"\xff\xd8"):
                     audio.delall("APIC")
                     audio.add(APIC(encoding=3, mime="image/jpeg", type=3, desc="Cover", data=data))
-                    console.print("[green]✓ Artwork embedded in MP3[/green]")
+                    console.print("[bright_cyan]✓ Artwork embedded in MP3[/bright_cyan]")
 
             audio.save()
 
@@ -746,11 +752,10 @@ def write_credit_sheet(data, tracks):
     for track in tracks:
         lines.append(f"{track.get('track_number') or ''}. {track.get('title') or 'Untitled'}")
         roles = track.get("credits_by_role") or {}
-        for role in sorted(roles):
+        for role in sorted(roles, key=lambda value: dynamic_tag_name(value).casefold()):
             people = roles[role]
-            if isinstance(people, list):
-                people = ", ".join(str(person) for person in people)
-            lines.append(f"  {role}: {people}")
+            people = comma_join(people if isinstance(people, list) else [people]) or ""
+            lines.append(f"  {dynamic_tag_name(role)}: {people}")
         lines.append("")
     sheet.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
     print(f"Credits saved: {sheet}")

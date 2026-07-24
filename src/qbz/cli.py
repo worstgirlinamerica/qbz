@@ -86,6 +86,7 @@ CURRENT_QUALITY_ID = get("download", "quality", "27")
 if CURRENT_QUALITY_ID not in {"5", "6", "7", "27"}:
     CURRENT_QUALITY_ID = "27"
 CURRENT_ID_ONLY = False
+CURRENT_CREDITS_ONLY = False
 WRITE_CREDITS = False
 DOWNLOAD_SUCCEEDED = None
 
@@ -145,6 +146,43 @@ def api(path, params=None):
         die(data.get("message", "Unknown Qobuz API error"))
 
     return data
+
+
+def optional_api(path, params=None):
+    """Best-effort catalog request for optional metadata such as lyrics."""
+    if not TOKEN:
+        return {}
+    global APP_ID
+    if not APP_ID:
+        try:
+            APP_ID = Bundle().get_app_id()
+        except requests.RequestException:
+            APP_ID = DEFAULT_APP_ID
+    try:
+        response = requests.get(
+            f"https://www.qobuz.com/api.json/0.2/{path}",
+            headers={"x-app-id": APP_ID, "x-user-auth-token": TOKEN},
+            params=params or {},
+            timeout=20,
+        )
+        if response.status_code != 200:
+            return {}
+        payload = response.json()
+        return payload if isinstance(payload, dict) and payload.get("status") != "error" else {}
+    except (requests.RequestException, ValueError):
+        return {}
+
+
+def extract_lyrics(value):
+    if isinstance(value, str):
+        return value.strip() or None
+    if not isinstance(value, dict):
+        return None
+    for key in ("lyrics", "lyrics_text", "lyric", "text", "content"):
+        result = extract_lyrics(value.get(key))
+        if result:
+            return result
+    return None
 
 
 
@@ -283,6 +321,25 @@ def unique_values(values):
 PERSON_SUFFIXES = {"jr", "jr.", "sr", "sr.", "ii", "iii", "iv", "v"}
 
 
+def normalize_credit_role(value):
+    raw = clean_value(value)
+    compact = re.sub(r"[^a-z0-9]+", "", raw.casefold())
+    canonical = {
+        "additionalstudioproducer": "Additional Studio Producer",
+        "associatedperformer": "Associated Performer",
+        "backgroundvocal": "Background Vocal",
+        "composerlyricist": "ComposerLyricist",
+        "performingartist": "Performing Artist",
+        "performingartists": "Performing Artists",
+        "vocalproducer": "Vocal Producer",
+    }
+    if compact in canonical:
+        return canonical[compact]
+    spaced = re.sub(r"([a-z])([A-Z])", r"\1 \2", raw)
+    spaced = re.sub(r"[^A-Za-z0-9&]+", " ", spaced).strip()
+    return " ".join(word[:1].upper() + word[1:] for word in spaced.split()) or "Credit"
+
+
 def clean_credit_name(value):
     text = clean_value(value)
     if not text:
@@ -322,7 +379,7 @@ def parse_performer_credits(value):
             role_start = 2
 
         person = clean_credit_name(person)
-        roles = unique_values(parts[role_start:])
+        roles = unique_values(normalize_credit_role(role) for role in parts[role_start:])
         if not roles:
             continue
 
@@ -353,6 +410,12 @@ def hydrate_selected_item(kind, selected):
         if isinstance(full_track, dict):
             hydrated = merge_dicts(hydrated, full_track)
             raw["track"] = full_track
+
+        lyrics = extract_lyrics(hydrated)
+        if not lyrics:
+            lyrics = extract_lyrics(optional_api("track/getLyrics", {"track_id": selected["id"]}))
+        if lyrics:
+            hydrated["lyrics"] = lyrics
 
         album_id = nested_get(hydrated, "album.id")
         if album_id:
@@ -596,6 +659,7 @@ def build_selected_metadata(kind, selected):
         "composer": ", ".join(composers) or clean_value(selected.get("composer")),
         "composers": composers,
         "lyricists": lyricists,
+        "lyrics": extract_lyrics(selected),
         "producers": producers,
         "performers_raw": performers_raw,
         "credits": credits,
@@ -628,7 +692,7 @@ def build_selected_metadata(kind, selected):
     return selected_metadata, raw_qobuz, credits, credits_by_role
 
 
-def export_selected_metadata(kind, selected, debug=False):
+def export_selected_metadata(kind, selected, debug=False, download=True):
     global DOWNLOAD_SUCCEEDED
     with Progress(
         SpinnerColumn(style="cyan"),
@@ -651,7 +715,13 @@ def export_selected_metadata(kind, selected, debug=False):
         f"{len(credits_by_role)} distinct roles"
     )
 
-    DOWNLOAD_SUCCEEDED = run_after_metadata_helper()
+    if download:
+        DOWNLOAD_SUCCEEDED = run_after_metadata_helper()
+    else:
+        from qbz.download import write_credit_sheet
+        selected_metadata["write_credits"] = True
+        write_credit_sheet(selected_metadata, [selected_metadata])
+        DOWNLOAD_SUCCEEDED = True
 
     if debug:
         console.print(f"[dim]Debug object written to {DEBUG_SELECTED_JSON}[/dim]")
@@ -669,7 +739,7 @@ def album_track_sort_key(track):
     return (disc, number)
 
 
-def export_album_metadata(selected, debug=False):
+def export_album_metadata(selected, debug=False, download=True):
     global DOWNLOAD_SUCCEEDED
     with Progress(
         SpinnerColumn(style="cyan"),
@@ -688,6 +758,10 @@ def export_album_metadata(selected, debug=False):
         for index, track in enumerate(tracks, 1):
             merged = dict(track or {})
             merged["album"] = full_album
+            if not extract_lyrics(merged) and merged.get("id"):
+                lyrics = extract_lyrics(optional_api("track/getLyrics", {"track_id": merged["id"]}))
+                if lyrics:
+                    merged["lyrics"] = lyrics
             metadata, raw_qobuz, credits, credits_by_role = build_selected_metadata("track", merged)
             metadata["album_download"] = True
             metadata["album_track_index"] = index
@@ -729,7 +803,13 @@ def export_album_metadata(selected, debug=False):
         f"• quality {CURRENT_QUALITY_ID}"
     )
 
-    DOWNLOAD_SUCCEEDED = run_after_metadata_helper()
+    if download:
+        DOWNLOAD_SUCCEEDED = run_after_metadata_helper()
+    else:
+        from qbz.download import write_credit_sheet
+        batch["write_credits"] = True
+        write_credit_sheet(batch, track_metadatas)
+        DOWNLOAD_SUCCEEDED = True
 
     if debug:
         console.print(f"[dim]Debug object written to {DEBUG_SELECTED_JSON}[/dim]")
@@ -960,13 +1040,17 @@ def quality_choices_for_item(item):
         ("6", f"Lossless  •  {describe('6', item)}"),
         ("7", f"Hi-Res  •  {describe('7', item)}"),
         ("27", f"Highest available  •  {describe('27', item)}"),
+        ("credits", "Credits only  •  no audio download"),
         ("0", "Copy selected item ID only"),
     ]
 
 
 def choose_quality(kind, item):
-    global CURRENT_QUALITY_ID, CURRENT_ID_ONLY
+    global CURRENT_QUALITY_ID, CURRENT_ID_ONLY, CURRENT_CREDITS_ONLY
+    if CURRENT_CREDITS_ONLY:
+        return
     CURRENT_ID_ONLY = False
+    CURRENT_CREDITS_ONLY = False
 
     choices = quality_choices_for_item(item)
 
@@ -1003,6 +1087,10 @@ def choose_quality(kind, item):
         CURRENT_ID_ONLY = True
         CURRENT_QUALITY_ID = "27"
         return
+    if choice == "credits":
+        CURRENT_CREDITS_ONLY = True
+        CURRENT_QUALITY_ID = "27"
+        return
     if choice not in ("5", "6", "7", "27"):
         console.print("[yellow]Invalid quality, using 27.[/yellow]")
         choice = "27"
@@ -1022,13 +1110,24 @@ def link_for(kind, item):
     return f"https://play.qobuz.com/{kind}/{item_id}"
 
 def selected_card(kind, item):
+    global WRITE_CREDITS
 
     choose_quality(kind, item)
 
-    link = link_for(kind, item)
-    copied = copy_link(link)
+    link = link_for(kind, item) if not CURRENT_CREDITS_ONLY else ""
+    copied = copy_link(link) if link else False
 
-    if not CURRENT_ID_ONLY:
+    if CURRENT_CREDITS_ONLY:
+        old_write_credits = WRITE_CREDITS
+        try:
+            WRITE_CREDITS = True
+            if kind == "album":
+                export_album_metadata(item, debug=os.getenv("QBZ_DEBUG_SELECTED", "").strip() == "1", download=False)
+            else:
+                export_selected_metadata(kind, item, debug=os.getenv("QBZ_DEBUG_SELECTED", "").strip() == "1", download=False)
+        finally:
+            WRITE_CREDITS = old_write_credits
+    elif not CURRENT_ID_ONLY:
         if kind == "album":
             export_album_metadata(item, debug=os.getenv("QBZ_DEBUG_SELECTED", "").strip() == "1")
         else:
@@ -1047,17 +1146,20 @@ def selected_card(kind, item):
     date = normalize_date(item.get("date") or item.get("release_date") or item.get("released_at") or nested_get(item, "album.release_date", "album.released_at")) or ""
 
     isrc = item.get("isrc") or ""
+    format_label = describe(CURRENT_QUALITY_ID, item) if not CURRENT_CREDITS_ONLY and not CURRENT_ID_ONLY else ""
 
-    if CURRENT_ID_ONLY:
-        status = "[green]✓ Copied selected item ID[/green]" if copied else "[yellow]Printed, but clipboard copy failed.[/yellow]"
+    if CURRENT_CREDITS_ONLY:
+        status = "[bright_cyan]✓ Credits sheet exported[/bright_cyan]"
+    elif CURRENT_ID_ONLY:
+        status = "[bright_cyan]✓ Copied selected item ID[/bright_cyan]" if copied else "[yellow]Printed, but clipboard copy failed.[/yellow]"
     elif kind == "album":
-        download_status = "[green]✓ Album download complete[/green]" if DOWNLOAD_SUCCEEDED else "[red]✗ Album download failed[/red]"
-        status = f"[green]✓ Album metadata exported[/green]\n{download_status}"
-        status += "\n" + ("[green]✓ Copied album link to clipboard[/green]" if copied else "[yellow]Printed, but clipboard copy failed.[/yellow]")
+        download_status = "[bright_cyan]✓ Album download complete[/bright_cyan]" if DOWNLOAD_SUCCEEDED else "[red]✗ Album download failed[/red]"
+        status = f"[bright_cyan]✓ Album metadata exported[/bright_cyan]\n{download_status}"
+        status += "\n" + ("[bright_cyan]✓ Copied album link to clipboard[/bright_cyan]" if copied else "[yellow]Printed, but clipboard copy failed.[/yellow]")
     else:
-        download_status = "[green]✓ Download complete[/green]" if DOWNLOAD_SUCCEEDED else "[red]✗ Download failed[/red]"
-        status = "[green]✓ Metadata exported[/green]\n" + download_status + "\n"
-        status += "[green]✓ Copied to clipboard[/green]" if copied else "[yellow]Printed, but clipboard copy failed.[/yellow]"
+        download_status = "[bright_cyan]✓ Download complete[/bright_cyan]" if DOWNLOAD_SUCCEEDED else "[red]✗ Download failed[/red]"
+        status = "[bright_cyan]✓ Metadata exported[/bright_cyan]\n" + download_status + "\n"
+        status += "[bright_cyan]✓ Copied to clipboard[/bright_cyan]" if copied else "[yellow]Printed, but clipboard copy failed.[/yellow]"
 
     card = (
 
@@ -1070,6 +1172,8 @@ def selected_card(kind, item):
         f"{label}" + (f" • {genre}" if genre else "") + "\n"
 
         f"ISRC: {isrc}\n\n"
+
+        + (f"Format: {format_label}\n\n" if format_label else "")
 
         + status
 
@@ -1357,13 +1461,14 @@ def handle_direct_url(value):
 
 def main():
 
-    global WRITE_CREDITS
+    global WRITE_CREDITS, CURRENT_CREDITS_ONLY
 
     if not CONFIG_PATH.exists():
         make_default()
 
-    flags = {arg for arg in sys.argv[1:] if arg == "--credits"}
-    WRITE_CREDITS = "--credits" in flags or getboolean("download", "write_credits", False)
+    flags = {arg for arg in sys.argv[1:] if arg in {"--credits", "--credits-only"}}
+    CURRENT_CREDITS_ONLY = "--credits-only" in flags
+    WRITE_CREDITS = bool(flags) or getboolean("download", "write_credits", False)
     if flags:
         sys.argv[:] = [arg for arg in sys.argv if arg not in flags]
 

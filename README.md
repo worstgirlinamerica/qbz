@@ -188,6 +188,17 @@ qbz "https://open.qobuz.com/track/409663689"
 qbz "https://open.qobuz.com/album/voi6vtydrimou"
 ```
 
+**Export credits without downloading audio:**
+
+```bash
+qbz "https://open.qobuz.com/album/voi6vtydrimou" --credits-only
+```
+
+The interactive quality menu also includes **Credits only**. Credits are
+written as a readable text sheet; normal downloads can additionally write
+credit sheets with `[download] write_credits = true`. Lyrics exposed by the
+Qobuz catalog are embedded in FLAC Vorbis comments and MP3 USLT tags.
+
 ### Supported URL Types
 
 - Songs (Catalog/Library)
