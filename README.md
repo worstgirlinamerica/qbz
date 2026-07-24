@@ -12,7 +12,7 @@
 <table>
 <tr>
 
-<td width="40%" valign="top">
+<td width="40%" valign="center">
 
 <h2>✨ Features</h2>
 
@@ -39,12 +39,13 @@
 
 </td>
 
-<td width="60%" valign="top" align="center">
+<td width="60%" valign="center" align="center">
 
 <p align="center">
   <img src="assets/QBZ_Demo.gif" width="100%" alt="qbz demonstration"><br>
   <b>Demonstration</b>
 </p>
+
 </td>
 
 </tr>
@@ -56,12 +57,18 @@
 
 - **Python 3.10 or newer**
 - **An active Qobuz subscription**
-- **FFmpeg** (only needed when qbz falls back to a segmented web-player stream)
+- **FFmpeg** (Needed for when qbz falls back to a segmented web-player stream)
 
 ## 📦 Installation
 
-#### 1. Install qbz (Recommended)
-This installs qbz and its Python dependencies, and makes the `qbz` command available in the active environment.
+#### 1. Install QBZ
+This installs `qbz` and its Python dependencies, and makes the `qbz` command available in the active environment.
+
+If you already have a suitable [Python environment](#required), the short form is:
+
+```bash
+python -m pip install git+https://github.com/worstgirlinamerica/qbz.git
+```
 
 **macOS / Linux**
 
@@ -81,26 +88,7 @@ python -m pip install --upgrade pip
 python -m pip install git+https://github.com/worstgirlinamerica/qbz.git
 ```
 
-If you already have a suitable Python environment, the short form is:
-
-```bash
-python -m pip install git+https://github.com/worstgirlinamerica/qbz.git
-```
-
-For segmented-stream fallback, install FFmpeg separately:
-
-- macOS: `brew install ffmpeg`
-- Debian/Ubuntu: `sudo apt install ffmpeg`
-- Windows: `winget install Gyan.FFmpeg.Shared`
-
-The canonical source repository is [github.com/worstgirlinamerica/qbz](https://github.com/worstgirlinamerica/qbz).
-
-qbz is self-contained: it does not install or import `qobuz-dl-ultimate`.
-At runtime it reads the current public web-player configuration, obtains the
-rotating app ID/request secrets, and signs its own API and web-player session
-requests. The same package entry point works on macOS, Linux, and Windows.
-
-🔑 **Configure Your Qobuz Auth Token**
+#### 2. 🔑 **Configure Your Qobuz Auth Token**
 
 Before using qbz, you need to provide your Qobuz browser authentication token. qbz stores it locally and sends it only to Qobuz; it does not send tokens to qbz telemetry or third-party services.
 1. Open the [Qobuz Web Player](https://play.qobuz.com) in your browser and log in.
@@ -114,14 +102,79 @@ Before using qbz, you need to provide your Qobuz browser authentication token. q
 9. When the prompt appears, paste the alphanumeric string and press enter to create your token file!
 > Your token is now saved locally and qbz is ready to use. Never commit this token or paste it into an issue.
 
-The token is stored in the platform-appropriate user configuration directory
-(`QBZ_TOKEN_FILE` can override it). For development or CI, install the test
-extras and run:
+## 🚀 Usage
+```bash
+qbz [OPTIONS] URLS...
+```
+OR 
+```bash
+python3 -m qbz
+```
+if you're running the code manually
+
+### Examples
+
+**Search for an artist with the interactive menu**
 
 ```bash
-pip install -e '.[test]'
-python -m unittest discover -s tests -v
+qbz artist Slayyyter
 ```
+
+**Search by ISRC:**
+
+```bash
+qbz isrc USRC12502004
+```
+
+**Download by URL:**
+
+```bash
+qbz "https://open.qobuz.com/album/voi6vtydrimou"
+```
+
+**Export credits without downloading audio:**
+
+```bash
+qbz "https://open.qobuz.com/album/voi6vtydrimou" --credits-only
+```
+
+| Command or flag | What it does |
+| --- | --- |
+| `qbz` | Opens the interactive prompt using `cli.default_mode` |
+| `qbz song <query>` | Search tracks |
+| `qbz album <query>` | Search albums |
+| `qbz artist <query>` | Browse an artist |
+| `qbz isrc <code>` | Search by ISRC |
+| `qbz <qobuz-url>` | Download a track or album from a Qobuz URL |
+| `qbz whoami` | Show the authenticated Qobuz session |
+| `qbz token` | Save or replace the local Qobuz token |
+| `qbz config` | Print the config file path |
+| `--credits` | Download normally and also write a credits sheet |
+| `--credits-only` | Write credits without downloading audio |
+| `--help`, `-h` | Show built-in command help |
+
+### Supported URL Types
+
+- Songs (Catalog/Library)
+- Albums (Catalog/Library)
+- Artists
+
+**Interactive Prompt Controls:**
+
+| Key            | Action            |
+| -------------- | ----------------- |
+| **Arrow keys** | Move selection    |
+| **Enter**      | Confirm selection |
+
+### Song Codecs
+- `5` - MP3 320kbps · up to 44.1kHz
+- `6` - Lossless / CD Quality FLAC · 16b 44.1kHz
+- `7` - Hi-Res FLAC · up to 24b / 96kHz, when available
+- `27` - Highest available release resolution, including rates above 96kHz
+-  `C` - Credits Only · Written as a readable text sheet
+
+`qbz` reads Qobuz release metadata for each requested track or album to determine the actual maximum available bit depth and sample rate.
+`27` is a dynamic quality selector, not a fixed format. It requests the highest available quality from Qobuz and resolves to the actual release specifications. `qbz` displays the detected bit depth and sample rate (for example, 24-bit / 48 kHz) next to `27` rather than assuming a fixed format.
 
 ## ⚙️ Configuration
 
@@ -162,102 +215,20 @@ default_mode = song
 track_template = https://play.qobuz.com/track/{track_id}?quality={quality}
 ```
 
-The config path is platform-native by default. Set `QBZ_CONFIG_FILE` when you
-want a specific file, for example in a portable or CI setup.
+## Developer
 
-### Configuration and flags quick reference
+The token is stored in the platform-appropriate user configuration directory
+(`QBZ_TOKEN_FILE` can override it). For development or CI, install the test
+extras and run:
 
-On macOS the default config file is
-`~/Library/Application Support/qbz/config.ini`. Linux uses
-`~/.config/qbz/config.ini`; Windows uses `%LOCALAPPDATA%\qbz\config.ini`.
-Run `qbz config` to print the exact path on the current computer.
-
-| Command or flag | What it does |
-| --- | --- |
-| `qbz` | Opens the interactive prompt using `cli.default_mode` |
-| `qbz song <query>` | Search tracks |
-| `qbz album <query>` | Search albums |
-| `qbz artist <query>` | Browse an artist |
-| `qbz isrc <code>` | Search by ISRC |
-| `qbz <qobuz-url>` | Download a track or album from a Qobuz URL |
-| `qbz whoami` | Show the authenticated Qobuz session |
-| `qbz token` | Save or replace the local Qobuz token |
-| `qbz config` | Print the config file path |
-| `--credits` | Download normally and also write a credits sheet |
-| `--credits-only` | Write credits without downloading audio |
-| `--help`, `-h` | Show built-in command help |
+```bash
+pip install -e '.[test]'
+python -m unittest discover -s tests -v
+```
 
 Environment overrides are also supported: `QBZ_CONFIG_FILE`, `QBZ_TOKEN_FILE`,
 `QBZ_OUTPUT_DIR`, `QBZ_COUNTRY`, `QBZ_TRACK_LINK_TEMPLATE`, and
 `QBZ_DEBUG_SELECTED`.
-
-## 🚀 Usage
-```bash
-qbz [OPTIONS] URLS...
-```
-OR 
-```bash
-python3 -m qbz
-```
-if you're running the code manually
-
-### Examples
-
-**Search for an artist:**
-
-```bash
-qbz artist Slayyyter
-```
-
-**Download a song:**
-
-```bash
-qbz "https://open.qobuz.com/track/409663689"
-```
-
-**Download an album:**
-
-```bash
-qbz "https://open.qobuz.com/album/voi6vtydrimou"
-```
-
-**Export credits without downloading audio:**
-
-```bash
-qbz "https://open.qobuz.com/album/voi6vtydrimou" --credits-only
-```
-
-The interactive quality menu also includes **Credits only**. Credits are
-written as a readable text sheet; normal downloads can additionally write
-credit sheets with `[download] write_credits = true`. Lyrics exposed by the
-Qobuz catalog are embedded in FLAC Vorbis comments and MP3 USLT tags.
-
-### Supported URL Types
-
-- Songs (Catalog/Library)
-- Albums (Catalog/Library)
-- Playlists (Catalog/Library)
-- Artists
-
-**Interactive Prompt Controls:**
-
-| Key            | Action            |
-| -------------- | ----------------- |
-| **Arrow keys** | Move selection    |
-| **Enter**      | Confirm selection |
-
-### Song Codecs
-- `5` - MP3 320kbps · up to 44.1kHz
-- `6` - Lossless / CD Quality FLAC · 16b 44.1kHz
-- `7` - Hi-Res FLAC · up to 24b / 96kHz, when available
-- `27` - Highest available release resolution, including rates above 96kHz
-
-The format IDs are targets, not guesses about the file. qbz reads Qobuz’s
-release metadata and verifies the returned bit depth and sample rate. `27`
-asks Qobuz for the highest available quality and may correctly return format
-`7` or `6` for releases that do not have anything higher. If the actual file
-is below the release maximum, qbz stops with a resolution-mismatch error.
-
 
 ## ❓ Help
 To see all available commands and flags anytime:
@@ -268,11 +239,16 @@ qbz --help
 
 ## 🏆 Credits and disclaimer
 
-qbz is an independent project and is not affiliated with Qobuz. Its runtime
-authentication and segmented-stream implementation was informed by public
-web-player behavior and community research around qobuz-dl/qopy, including
-work associated with Sorrow446, DashLt, and catap. qbz has its own CLI,
-metadata pipeline, configuration system, and implementation.
+`qbz` is the official repository at:
+https://github.com/worstgirlinamerica/qbz
 
-Use qbz only with an account and content you are authorized to access, and
+`qbz` is an independent Qobuz CLI tool and is not affiliated with other projects using the QBZ name, or Qobuz itself. Only the runtime
+authentication and segmented-stream implementation were informed by public web-player behavior and community research around qobuz-dl/qopy, including work associated with Sorrow446, DashLt, and catap. 
+
+`qbz` has its own CLI, metadata pipeline, configuration system, and implementation.
+
+Use `qbz` only with an account and content you are authorized to access, and
 follow Qobuz’s terms and applicable law.
+
+This tool was made for Educational Purposes!
+
