@@ -1,11 +1,53 @@
 # qbz
+<p align="left">
+ <img src="https://img.shields.io/badge/Qobuz-Downloader-21a0c0?style=plastic&labelColor=474747">
+ <img src="https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white">
+ <img src="https://img.shields.io/badge/CLI-Terminal-black?logo=gnubash&logoColor=white">
+
+</p>
+
 `qbz` is a feature-rich, fast Python-based CLI tool designed for music hoarders. It lets you interactively search the Qobuz catalog, explore artist discographies, and download tracks with pristine metadata, embedded artwork, and official credits.
 
-## Features
-- 🎵**Interactive Menus:** Navigate search results, choose between Artist Albums or Tracks, and pick your downloads using intuitive terminal UI prompts.
-- 📝**Deep Credits:** Fetch official studio, writing, and performance credits with the `--credits` flag (saves directly as a `Credits.txt` file).
-- 🏷️**Detailed Metadata:** Automatically tags downloads with full FLAC metadata and embeds high-resolution cover art.
-- ⚙️**Privacy First:** Your authentication tokens are stored strictly locally. No telemetry, no logs, no tracking.
+<table>
+<tr>
+
+<td width="40%" valign="top">
+
+<h2>✨ Features</h2>
+
+<ul>
+  <li><b>🎵 Interactive Menus</b><br>
+  Navigate search results, browse artist albums or tracks, and choose downloads through an intuitive terminal UI.</li>
+
+  <br>
+
+  <li><b>📝 Deep Credits</b><br>
+  Export official studio, writing, and performance credits with <code>--credits</code>.</li>
+
+  <br>
+
+  <li><b>🏷️ Detailed Metadata</b><br>
+  Automatically embeds high-resolution artwork and complete FLAC metadata.</li>
+
+  <br>
+
+  <li><b>⚙️ Privacy First</b><br>
+  Authentication tokens stay on your machine. No telemetry, no tracking.</li>
+
+</ul>
+
+</td>
+
+<td width="60%" valign="top" align="center">
+
+<p align="center">
+  <img src="assets/QBZ_Demo.gif" width="100%" alt="qbz demonstration"><br>
+  <b>Demonstration</b>
+</p>
+</td>
+
+</tr>
+</table>
 
 ## 📋 Prerequisites
 
