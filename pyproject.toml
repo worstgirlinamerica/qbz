@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "qbz-cli"
+version = "0.1.0"
+description = "Interactive Qobuz catalog search and complete lossless downloader"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "GPL-3.0-or-later" }
+dependencies = [
+  "qobuz-dl-ultimate>=2.1.4",
+  "requests>=2.31",
+  "rich>=13.7",
+  "questionary>=2.0",
+  "InquirerPy>=0.3.4",
+  "mutagen>=1.47",
+]
+
+[project.scripts]
+qbz = "qbz.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

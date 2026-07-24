@@ -1,0 +1,137 @@
+# qbz
+<p align="left">
+ <img src="https://img.shields.io/badge/Qobuz-Downloader-21a0c0?style=plastic&labelColor=474747">
+ <img src="https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white">
+ <img src="https://img.shields.io/badge/CLI-Terminal-black?logo=gnubash&logoColor=white">
+
+</p>
+
+`qbz` is a feature-rich, fast Python-based CLI tool designed for music hoarders. It lets you interactively search the Qobuz catalog, explore artist discographies, and download tracks with pristine metadata, embedded artwork, and official credits.
+
+<table>
+<tr>
+
+<td width="40%" valign="top">
+
+<h2>✨ Features</h2>
+
+<ul>
+  <li><b>🎵 Interactive Menus</b><br>
+  Navigate search results, browse artist albums or tracks, and choose downloads through an intuitive terminal UI.</li>
+
+  <br>
+
+  <li><b>📝 Deep Credits</b><br>
+  Export official studio, writing, and performance credits with <code>--credits</code>.</li>
+
+  <br>
+
+  <li><b>🏷️ Detailed Metadata</b><br>
+  Automatically embeds high-resolution artwork and complete FLAC metadata.</li>
+
+  <br>
+
+  <li><b>⚙️ Privacy First</b><br>
+  Authentication tokens stay on your machine. No telemetry, no tracking.</li>
+
+</ul>
+
+</td>
+
+<td width="60%" valign="top" align="center">
+
+<p align="center">
+  <img src="assets/QBZ_Demo.gif" width="100%" alt="qbz demonstration"><br>
+  <b>Demonstration</b>
+</p>
+</td>
+
+</tr>
+</table>
+
+## 📋 Prerequisites
+
+> ### Required
+
+- **Python**
+- **Active Qobuz subscription**
+
+## 📦 Installation
+
+#### 1. Install qbz (Recommended)
+This is the reccomended method. It installs the required dependencies and automatically makes the `qbz` command available everywhere in your terminal. *(Note: You may need to use `pip3` depending on your system).*
+
+```bash
+pip install git+https://github.com/worstgirlinamerica/qbz.git
+```   
+
+🔑 **Configure Your Qobuz Auth Token**
+
+Before using qbz, you need to provide your Qobuz browser authentication token. This token is stored locally on your machine and is never transmitted anywhere else.
+1. Open the [Qobuz Web Player](https://play.qobuz.com) in your browser and log in.
+2. Press `F12` to open the Developer Tools.
+3. Go to the **Application** tab (Chrome/Edge) or **Storage** tab (Firefox).
+4. In the left sidebar, expand **Local Storage** and click on `https://play.qobuz.com`.
+5. In the list of keys, find **`localuser`**.
+6. At the bottom of the panel (or by expanding the JSON value), look for the **`token`** string.
+7. Copy the token string.
+8. Open your terminal and Run: **`qbz token`**
+9. When the prompt appears, paste the alphanumeric string and press enter to create your token file!
+> Your token is now saved locally and qbz is ready to use.
+## 🚀 Usage
+```bash
+qbz [OPTIONS] URLS...
+```
+OR 
+```bash
+python3 -m qbz
+```
+if you're running the code manually
+
+### Examples
+
+**Search for an artist:**
+
+```bash
+qbz artist Slayyyter
+```
+
+**Download a song:**
+
+```bash
+qbz "https://open.qobuz.com/track/409663689"
+```
+
+**Download an album:**
+
+```bash
+qbz "https://open.qobuz.com/album/voi6vtydrimou"
+```
+
+### Supported URL Types
+
+- Songs (Catalog/Library)
+- Albums (Catalog/Library)
+- Playlists (Catalog/Library)
+- Artists
+
+**Interactive Prompt Controls:**
+
+| Key            | Action            |
+| -------------- | ----------------- |
+| **Arrow keys** | Move selection    |
+| **Enter**      | Confirm selection |
+
+### Song Codecs
+- `5` - MP3 320kbps · up to 44.1kHz
+- `6` - Lossless / CD Quality FLAC · 16b 44.1kHz
+- `7` - Hi-Res FLAC · 24b / 48kHz
+- `27` - Highest • 24 bit / 48 kHz / Stereo / default
+
+
+## ❓ Help
+To see all available commands and flags anytime:
+
+```bash
+qbz --help
+```
