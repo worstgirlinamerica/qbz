@@ -17,6 +17,7 @@ dependencies = [
   "mutagen>=1.47",
   "cryptography>=42",
   "platformdirs>=4.2",
+  "pyfiglet>=1.0.2",
 ]
 
 [project.scripts]
