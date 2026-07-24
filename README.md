@@ -41,10 +41,8 @@
 
 <td width="60%" valign="center" align="center">
 
-<p align="center">
-  <img src="assets/QBZ_Demo.gif" width="100%" alt="qbz demonstration"><br>
-  <b>Demonstration</b>
-</p>
+
+
 
 </td>
 
