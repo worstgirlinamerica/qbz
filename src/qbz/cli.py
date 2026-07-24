@@ -1075,7 +1075,7 @@ def selected_card(kind, item):
 
     )
 
-    console.print(Panel(card, title="Selected", border_style="green" if copied else "yellow"))
+    console.print(Panel(card, title="Selected", border_style="bright_cyan" if copied else "yellow"))
 
 
 
