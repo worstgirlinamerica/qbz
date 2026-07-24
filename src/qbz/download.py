@@ -12,6 +12,7 @@ from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from qbz.api import QobuzClient
 from qbz.bundle import DEFAULT_APP_ID
 from qbz.paths import configured_token_path, output_path
+from qbz.quality import validate_response
 
 from mutagen.flac import FLAC, Picture
 from mutagen.id3 import ID3, APIC, TXXX, TIT2, TPE1, TALB, TPE2, TRCK, TPOS, TCON, TDRC, TCOM, TCOP, TSRC, TPUB
@@ -802,6 +803,7 @@ def main(metadata_path):
                     raise RuntimeError(
                         f"Qobuz returned format {returned_format} for requested format {candidate}"
                     )
+                validate_response(candidate, track_url, data, track)
                 if track_url.get("url_template"):
                     download_segmented(track_url, safe_path)
                     downloaded = True

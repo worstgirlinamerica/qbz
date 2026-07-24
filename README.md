@@ -205,8 +205,14 @@ qbz "https://open.qobuz.com/album/voi6vtydrimou"
 ### Song Codecs
 - `5` - MP3 320kbps · up to 44.1kHz
 - `6` - Lossless / CD Quality FLAC · 16b 44.1kHz
-- `7` - Hi-Res FLAC · 24b / 48kHz
-- `27` - Highest • 24 bit / 48 kHz / Stereo / default
+- `7` - Hi-Res FLAC · up to 24b / 96kHz, when available
+- `27` - Highest available release resolution, including rates above 96kHz
+
+The format IDs are targets, not guesses about the file. qbz reads Qobuz’s
+release metadata and verifies the returned bit depth and sample rate. If a
+selected `27`, `7`, or `6` request comes back lower than its target, qbz stops
+with a resolution-mismatch error instead of silently accepting or downgrading
+the file.
 
 
 ## ❓ Help

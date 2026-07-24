@@ -4,6 +4,7 @@ import unittest
 
 from qbz.api import QobuzClient
 from qbz.bundle import Bundle
+from qbz.quality import describe, validate_response
 
 
 class Response:
@@ -32,6 +33,16 @@ class Session:
 
 
 class AuthTests(unittest.TestCase):
+    def test_resolution_validation_rejects_lower_27_response(self):
+        metadata = {"maximum_bit_depth": 24, "maximum_sampling_rate": 192}
+        self.assertEqual(describe("27", metadata), "24-bit / 192 kHz FLAC")
+        with self.assertRaisesRegex(RuntimeError, "Resolution mismatch"):
+            validate_response("27", {"bit_depth": 24, "sampling_rate": 96}, metadata)
+
+    def test_resolution_validation_accepts_real_27_response(self):
+        metadata = {"maximum_bit_depth": 24, "maximum_sampling_rate": 192}
+        validate_response("27", {"bit_depth": 24, "sampling_rate": 192}, metadata)
+
     def test_bundle_extracts_app_id_and_secret(self):
         secret = "test-secret"
         encoded = base64.b64encode(secret.encode()).decode() + ("x" * 44)

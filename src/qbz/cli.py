@@ -12,6 +12,7 @@ import requests
 from qbz.bundle import Bundle, DEFAULT_APP_ID
 from qbz.config import CONFIG_PATH, get, getboolean, make_default
 from qbz.paths import configured_token_path
+from qbz.quality import describe
 
 from rich.console import Console
 
@@ -949,12 +950,11 @@ def item_max_spec(item):
 
 
 def quality_choices_for_item(item):
-    max_spec = item_max_spec(item)
     return [
         ("5", "MP3 • lossy / low"),
-        ("6", "Lossless • CD quality / FLAC"),
-        ("7", f"Hi-Res • {max_spec}"),
-        ("27", f"Highest • {max_spec} / default"),
+        ("6", f"Lossless • {describe('6', item)}"),
+        ("7", f"Hi-Res • {describe('7', item)}"),
+        ("27", f"Highest available • {describe('27', item)}"),
         ("0", "Copy selected item ID only"),
     ]
 
