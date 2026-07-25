@@ -74,6 +74,17 @@
 - **An active Qobuz subscription**
 - **FFmpeg** (Needed for when qbz falls back to a segmented web-player stream)
 
+> ### Installing FFmpeg
+FFmpeg is required for segmented downloads. If using FFmpeg only for qbz, you can simply install FFmpeg to your qbz installation directory: 
+```bash 
+qbz --download-ffmpeg
+```
+
+We recommend the above option, but if you want to install FFmpeg system-wide, follow these instructions
+- [Windows Tutorial](https://windowsloop.com/install-ffmpeg-windows-10/)
+- OSX - `brew install ffmpeg`
+- Linux - `sudo apt install ffmpeg` or use your distro's package manager
+
 ## 📦 Installation
 
 #### 1. Install QBZ
