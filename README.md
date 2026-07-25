@@ -252,8 +252,8 @@ To see all available commands and flags anytime:
 qbz --help
 ```
 
-## 🏆 Credits and disclaimer
-
+## 🏆 Credits and License
+    
 [qbz-cli](https://github.com/worstgirlinamerica/qbz-cli) is the official repository at:
 https://github.com/worstgirlinamerica/qbz-cli
 
@@ -267,3 +267,6 @@ follow Qobuz’s terms and applicable law.
 
 This tool was made for Educational Purposes!
 
+#### License
+ <a href="https://github.com/worstgirlinamerica/qbz-cli/blob/main/LICENSE">
+    <img src="https://img.shields.io/badge/License-GPL--3.0-blue?style=for-the-badge"></a>
