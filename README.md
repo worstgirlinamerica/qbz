@@ -1,18 +1,21 @@
+<div align="center">
+
 # qbz
-<p align="left">
- <a href="https://github.com/worstgirlinamerica/qbz-cli"><img src="https://img.shields.io/badge/Qobuz-Downloader-21a0c0?style=plastic&labelColor=474747"></a>
- <a href="https://github.com/worstgirlinamerica/qbz-cli/actions/workflows/test.yml"><img src="https://github.com/worstgirlinamerica/qbz/actions/workflows/test.yml/badge.svg" alt="Tests"></a>
- <img src="https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white">
- <img src="https://img.shields.io/badge/CLI-Terminal-black?logo=gnubash&logoColor=white">
+<p>
+  <img src="https://img.shields.io/badge/RELEASE-v1.1.0-3776ab?style=for-the-badge&labelColor=555555">
+    <a href="https://github.com/worstgirlinamerica/qbz-cli"><img src="https://img.shields.io/badge/GitHub-qbz--cli-181717?style=for-the-badge&logo=github&logoColor=white"></a>
+
+
 
 </p>
+</div>
 
 `qbz` (qbz-cli) is a feature-rich, fast Python-based CLI tool designed for music hoarders. It lets you interactively search the Qobuz catalog, explore artist discographies, and download tracks with pristine metadata, embedded artwork, and official credits.
 
-<table>
+<table align="center">
 <tr>
 
-<td width="40%" valign="center">
+<td width="65%" valign="top">
 
 <h2>✨ Features</h2>
 
@@ -34,15 +37,27 @@
 
   <li><b>⚙️ Privacy First</b><br>
   Authentication tokens stay on your machine. No telemetry, no tracking.</li>
-
 </ul>
+
+<p>&nbsp;</p>
 
 </td>
 
-<td width="60%" valign="center" align="center">
+<td width="35%" valign="top" align="center">
 
+<h2>Demonstration</h2>
 
+<img src="assets/QBZ_Demo.gif" width="100%" alt="qbz demonstration">
 
+<div style="height:25px;"></div>
+
+<div align="center">
+
+<a href="https://github.com/worstgirlinamerica/qbz-cli/actions/workflows/test.yml"><img src="https://github.com/worstgirlinamerica/qbz-cli/actions/workflows/test.yml/badge.svg"></a>
+<img src="https://img.shields.io/badge/Linux-FCC624?logo=linux&logoColor=black">
+<img src="https://img.shields.io/badge/macOS-000000?logo=apple&logoColor=white">
+<img src="https://img.shields.io/badge/Windows-0078D6?logo=windows&logoColor=white">
+</div>
 
 </td>
 
