@@ -1,13 +1,15 @@
 <div align="center">
 
 # qbz
+
 <p>
-  <img src="https://img.shields.io/badge/RELEASE-v1.1.0-3776ab?style=for-the-badge&labelColor=555555">
-    <a href="https://github.com/worstgirlinamerica/qbz-cli"><img src="https://img.shields.io/badge/GitHub-qbz--cli-181717?style=for-the-badge&logo=github&logoColor=white"></a>
+  <a href="https://github.com/worstgirlinamerica/qbz-cli/releases/tag/v1.1.0">
+    <img src="https://img.shields.io/badge/RELEASE-v1.1.0-3776ab?style=for-the-badge&labelColor=555555"></a>
 
-
-
+  <a href="https://github.com/worstgirlinamerica/qbz-cli">
+    <img src="https://img.shields.io/badge/GitHub-qbz--cli-181717?style=for-the-badge&logo=github&logoColor=white"></a>
 </p>
+
 </div>
 
 `qbz` (qbz-cli) is a feature-rich, fast Python-based CLI tool designed for music hoarders. It lets you interactively search the Qobuz catalog, explore artist discographies, and download tracks with pristine metadata, embedded artwork, and official credits.
