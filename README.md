@@ -4,12 +4,12 @@
 
 <p>
   <a href="https://github.com/worstgirlinamerica/qbz-cli/releases/tag/v1.1.0">
-    <img src="https://img.shields.io/badge/RELEASE-v1.1.0-3776ab?style=for-the-badge&labelColor=555555"></a>
+    <img src="https://img.shields.io/badge/RELEASE-v1.1.0-3776ab?style=flat&labelColor=555555"></a>
 
   <a href="https://github.com/worstgirlinamerica/qbz-cli">
-    <img src="https://img.shields.io/badge/GitHub-qbz--cli-181717?style=for-the-badge&logo=github&logoColor=white"></a>
+    <img src="https://img.shields.io/badge/GitHub-qbz--cli-181717?style=flat&logo=github&logoColor=white"></a>
   <a href="https://github.com/worstgirlinamerica/qbz-cli/releases">
-<img src="https://img.shields.io/github/downloads/worstgirlinamerica/qbz-cli/total?style=for-the-badge"></a>
+<img src="https://img.shields.io/github/downloads/worstgirlinamerica/qbz-cli/total?style=flat"></a>
 
 </p>
 
