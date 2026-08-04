@@ -4,7 +4,7 @@
 
 <p>
   <a href="https://github.com/worstgirlinamerica/qbz-cli/releases/tag/v1.1.0">
-    <img src="https://img.shields.io/badge/RELEASE-v1.1.0-3776ab?style=flat&labelColor=555555"></a>
+    <img src="https://img.shields.io/badge/Release-v1.1.0-3776ab?style=flat&labelColor=555555"></a>
 
   <a href="https://github.com/worstgirlinamerica/qbz-cli">
     <img src="https://img.shields.io/badge/GitHub-qbz--cli-181717?style=flat&logo=github&logoColor=white"></a>
