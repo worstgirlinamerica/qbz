@@ -89,30 +89,18 @@ We recommend the above option, but if you want to install FFmpeg system-wide, fo
 ## 📦 Installation
 
 #### 1. Install QBZ
-This installs `qbz` and its Python dependencies, and makes the `qbz` command available in the active environment.
-
-If you already have a suitable [Python environment](#required), the short form is:
+If you already have a suitable [Python environment](#required),
 
 ```bash
-python -m pip install git+https://github.com/worstgirlinamerica/qbz-cli.git
+pip install qbz
 ```
-
-**macOS / Linux**
-
+> To upgrade to the latest version:
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade pip
-python -m pip install git+https://github.com/worstgirlinamerica/qbz-cli.git
-```   
-
-**Windows PowerShell**
-
-```powershell
-py -3 -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-python -m pip install git+https://github.com/worstgirlinamerica/qbz-cli.git
+pip install --upgrade qbz
+```
+or
+```bash
+pip install -U qbz
 ```
 
 #### 2. 🔑 **Configure Your Qobuz Auth Token**
@@ -243,6 +231,27 @@ track_template = https://play.qobuz.com/track/{track_id}?quality={quality}
 ```
 
 ## Developer
+**macOS / Linux**
+```bash
+git clone https://github.com/worstgirlinamerica/qbz-cli.git
+cd qbz-cli
+
+python3 -m venv .venv
+source .venv/bin/activate
+
+python -m pip install -e ".[test]"
+```
+
+**Windows**
+```bash
+git clone https://github.com/worstgirlinamerica/qbz-cli.git
+cd qbz-cli
+
+py -3 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+
+python -m pip install -e ".[test]"
+```
 
 The token is stored in the platform-appropriate user configuration directory
 (`QBZ_TOKEN_FILE` can override it). For development or CI, install the test
